@@ -1,0 +1,11 @@
+backend/
+.venv/
+__pycache__/
+*.db
+*.py
+Dockerfile
+Dockerfile.backend
+Dockerfile.frontend
+docker-compose.yml
+start.sh
+Makefile
