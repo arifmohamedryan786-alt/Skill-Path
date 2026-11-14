@@ -6,7 +6,6 @@ import { AppLayout } from './components/layout/AppLayout';
 import i18n from './i18n';
 
 // Pages
-import { LoginPage } from './pages/LoginPage';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { DiscoveryPage } from './pages/DiscoveryPage';
@@ -74,12 +73,7 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // Unauthenticated user -> Login
-  if (!token || !user) {
-    return <LoginPage onNavigate={navigate} />;
-  }
-
-  // If user hasn't selected goal or needs onboarding
+  // If user explicitly navigates to onboarding
   if (currentPath === '/onboarding') {
     return <OnboardingPage onNavigate={navigate} />;
   }
@@ -87,6 +81,10 @@ const AppContent: React.FC = () => {
   // Render appropriate page content inside AppLayout
   const renderPage = () => {
     switch (currentPath) {
+      case '/login':
+      case '/':
+      case '/dashboard':
+        return <DashboardPage onNavigate={navigate} />;
       case '/discovery':
         return <DiscoveryPage onNavigate={navigate} />;
       case '/careers':
@@ -117,7 +115,6 @@ const AppContent: React.FC = () => {
         return <AdminPage onNavigate={navigate} />;
       case '/glossary':
         return <GlossaryPage onNavigate={navigate} />;
-      case '/dashboard':
       default:
         return <DashboardPage onNavigate={navigate} />;
     }

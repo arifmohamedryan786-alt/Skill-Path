@@ -24,15 +24,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     async function loadUser() {
       try {
+        const currentToken = getAuthToken();
         const storedUser = localStorage.getItem('skillpath_user');
-        const existingToken = getAuthToken();
-        if (storedUser && existingToken) {
-          setUser(JSON.parse(storedUser));
+
+        if (!currentToken || !storedUser) {
+          // Direct entry: automatically authenticate as primary learner without any credentials
+          try {
+            const res = await api.demoLogin('arif');
+            setAuthToken(res.access_token);
+            setToken(res.access_token);
+            const defaultUser: User = {
+              id: res.user_id || 1,
+              email: res.email || 'arif@skillpath.dev',
+              role: res.role || 'learner',
+              full_name: res.full_name || 'Arif Mohamed',
+              career_goal: res.career_goal || 'AI/ML Engineer',
+              goal_status: res.goal_status || 'known',
+            };
+            setUser(defaultUser);
+            localStorage.setItem('skillpath_user', JSON.stringify(defaultUser));
+          } catch {
+            const fallbackUser: User = {
+              id: 1,
+              email: 'arif@skillpath.dev',
+              role: 'learner',
+              full_name: 'Arif Mohamed',
+              career_goal: 'AI/ML Engineer',
+              goal_status: 'known',
+            };
+            setUser(fallbackUser);
+            localStorage.setItem('skillpath_user', JSON.stringify(fallbackUser));
+          }
         } else {
-          setUser(null);
+          setUser(JSON.parse(storedUser));
+          setToken(currentToken);
         }
       } catch (err) {
-        setUser(null);
+        const fallbackUser: User = {
+          id: 1,
+          email: 'arif@skillpath.dev',
+          role: 'learner',
+          full_name: 'Arif Mohamed',
+          career_goal: 'AI/ML Engineer',
+          goal_status: 'known',
+        };
+        setUser(fallbackUser);
+        localStorage.setItem('skillpath_user', JSON.stringify(fallbackUser));
       } finally {
         setLoading(false);
       }
@@ -105,8 +142,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     clearAuthToken();
-    setToken(null);
-    setUser(null);
+    const defaultUser: User = {
+      id: 1,
+      email: 'arif@skillpath.dev',
+      role: 'learner',
+      full_name: 'Arif Mohamed',
+      career_goal: 'AI/ML Engineer',
+      goal_status: 'known',
+    };
+    setUser(defaultUser);
+    localStorage.setItem('skillpath_user', JSON.stringify(defaultUser));
+    // Direct entry: ensure default user token is restored
+    api.demoLogin('arif').then(res => {
+      setAuthToken(res.access_token);
+      setToken(res.access_token);
+    }).catch(() => {});
   };
 
   const switchDemoUser = async (personaOrEmail: string) => {

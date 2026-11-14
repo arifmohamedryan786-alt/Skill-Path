@@ -1,3 +1,17 @@
+import {
+  MOCK_CATEGORIES,
+  MOCK_QUESTIONS,
+  MOCK_PRACTICE_STATS,
+  MOCK_PROFILE,
+  MOCK_MATCH,
+  MOCK_ROADMAP,
+  MOCK_CAREERS,
+  MOCK_AGENT_LOGS,
+  MOCK_PROGRESS,
+  MOCK_FIRST_WEEK,
+  MOCK_CURRENT_SPRINT,
+} from './mockData';
+
 const getApiBase = (): string => {
   const envUrl = (import.meta as any).env?.VITE_API_URL;
   if (envUrl) {
@@ -24,6 +38,148 @@ export function clearAuthToken() {
   localStorage.removeItem('skillpath_user');
 }
 
+function getMockFallback(endpoint: string): any {
+  const cleanEndpoint = endpoint.split('?')[0];
+
+  if (cleanEndpoint.startsWith('/auth/demo/')) {
+    const name = decodeURIComponent(cleanEndpoint.replace('/auth/demo/', '')).toLowerCase();
+    return {
+      access_token: 'demo-jwt-token-' + name,
+      token_type: 'bearer',
+      user_id: name === 'admin' ? 99 : 1,
+      email: `${name}@skillpath.dev`,
+      role: name === 'admin' ? 'admin' : 'learner',
+      full_name:
+        name === 'admin'
+          ? 'Dr. Sarah Jenkins'
+          : name === 'priya'
+          ? 'Priya Sharma'
+          : name === 'rohan'
+          ? 'Rohan Patel'
+          : 'Arif Mohamed',
+      career_goal: name === 'rohan' ? 'Full Stack Developer' : 'AI/ML Engineer',
+      goal_status: 'known',
+    };
+  }
+  if (cleanEndpoint === '/auth/guest') {
+    return {
+      access_token: 'guest-jwt-token',
+      token_type: 'bearer',
+      user_id: 100,
+      email: 'guest@skillpath.dev',
+      role: 'learner',
+      full_name: 'Guest Learner',
+      career_goal: 'Explore Careers',
+      goal_status: 'unknown',
+    };
+  }
+  if (cleanEndpoint === '/profile') {
+    return MOCK_PROFILE;
+  }
+  if (cleanEndpoint === '/match') {
+    return MOCK_MATCH;
+  }
+  if (cleanEndpoint === '/roadmap') {
+    return MOCK_ROADMAP;
+  }
+  if (cleanEndpoint === '/roadmap/first-week') {
+    return MOCK_FIRST_WEEK;
+  }
+  if (cleanEndpoint === '/sprint/current') {
+    return MOCK_CURRENT_SPRINT;
+  }
+  if (cleanEndpoint === '/progress') {
+    return MOCK_PROGRESS;
+  }
+  if (cleanEndpoint === '/agents/logs') {
+    return MOCK_AGENT_LOGS;
+  }
+  if (cleanEndpoint === '/careers') {
+    return MOCK_CAREERS;
+  }
+  if (cleanEndpoint === '/practice/categories') {
+    return MOCK_CATEGORIES;
+  }
+  if (cleanEndpoint === '/practice/questions') {
+    const params = new URLSearchParams(endpoint.includes('?') ? endpoint.split('?')[1] : '');
+    const cat = params.get('category');
+    const diff = params.get('difficulty');
+    let filtered = [...MOCK_QUESTIONS];
+    if (cat && cat !== 'all') {
+      filtered = filtered.filter(
+        (q) => q.category_slug === cat || q.category.toLowerCase() === cat.toLowerCase()
+      );
+    }
+    if (diff && diff !== 'all') {
+      filtered = filtered.filter(
+        (q) => q.difficulty.toLowerCase() === diff.toLowerCase()
+      );
+    }
+    return filtered;
+  }
+  if (cleanEndpoint.startsWith('/practice/questions/')) {
+    const parts = cleanEndpoint.split('/');
+    const id = parseInt(parts[3], 10);
+    const q = MOCK_QUESTIONS.find((item) => item.id === id) || MOCK_QUESTIONS[0];
+    return q;
+  }
+  if (cleanEndpoint === '/practice/stats') {
+    return MOCK_PRACTICE_STATS;
+  }
+  if (cleanEndpoint === '/analysis') {
+    return {
+      strengths: ['Python Programming', 'NumPy', 'Data Structures', 'Problem Solving'],
+      gaps: ['MLOps Deployment', 'PyTorch Tensors', 'Docker Pipelines'],
+      radar_scores: [
+        { subject: 'Programming', score: 85, fullMark: 100 },
+        { subject: 'Algorithms', score: 78, fullMark: 100 },
+        { subject: 'System Design', score: 62, fullMark: 100 },
+        { subject: 'Machine Learning', score: 80, fullMark: 100 },
+        { subject: 'Cloud & DevOps', score: 55, fullMark: 100 },
+      ],
+    };
+  }
+  if (cleanEndpoint === '/glossary') {
+    return [
+      {
+        term: 'Machine Learning',
+        definition: 'The study of computer algorithms that improve automatically through experience and data.',
+        category: 'AI',
+      },
+      {
+        term: 'Supervised Learning',
+        definition: 'Training a model on labeled training data.',
+        category: 'AI',
+      },
+      {
+        term: 'Gradient Descent',
+        definition: 'Optimization algorithm used to minimize loss functions.',
+        category: 'Math',
+      },
+    ];
+  }
+  if (cleanEndpoint === '/mentor/history') {
+    return [
+      {
+        id: 1,
+        role: 'assistant',
+        content: 'Hello Arif! I am your SkillPath AI Mentor. How can I assist your learning path today?',
+        created_at: new Date().toISOString(),
+      },
+    ];
+  }
+  if (cleanEndpoint === '/mentor/chat') {
+    return {
+      id: 2,
+      role: 'assistant',
+      content:
+        'Great question! Focus on building hands-on projects with PyTorch and practicing algorithms daily. You are making great progress towards your goal as an AI/ML Engineer!',
+      created_at: new Date().toISOString(),
+    };
+  }
+  return null;
+}
+
 export async function apiRequest<T = any>(
   endpoint: string,
   options: RequestInit = {}
@@ -46,12 +202,22 @@ export async function apiRequest<T = any>(
       headers,
     });
   } catch (netErr: any) {
+    const fallback = getMockFallback(endpoint);
+    if (fallback !== null) {
+      return fallback as T;
+    }
     throw new Error(
       `Cannot connect to SkillPath backend server (${url}). Please ensure the backend server is running on http://localhost:8000.`
     );
   }
 
   if (!response.ok) {
+    // If backend returns 404/502 on remote hosting without route, try fallback
+    const fallback = getMockFallback(endpoint);
+    if (fallback !== null && (response.status === 404 || response.status >= 500)) {
+      return fallback as T;
+    }
+
     let errMsg = `Server returned error (${response.status}: ${response.statusText})`;
     try {
       const errJson = await response.json();

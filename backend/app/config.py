@@ -14,7 +14,9 @@ def _get_cors_origins() -> list[str]:
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:3000",
-        "http://127.0.0.1:3000"
+        "http://127.0.0.1:3000",
+        "https://skill-path-self-beta.vercel.app",
+        "https://skill-path.vercel.app"
     ]
 
 class Settings(BaseSettings):
@@ -64,7 +66,7 @@ class Settings(BaseSettings):
     LLM_CACHE_TTL_SECONDS: int = 3600
     
     # CORS Origins (Comma-separated from env, '*' stripped for production security)
-    ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000")
+    ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000,https://skill-path-self-beta.vercel.app,https://skill-path.vercel.app")
     BACKEND_CORS_ORIGINS: list[str] = _get_cors_origins()
 
 settings = Settings()
