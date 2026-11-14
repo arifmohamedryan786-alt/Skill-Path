@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: skillpath_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./backend/skillpath.db
+      - SECRET_KEY=skillpath_production_jwt_secret_key_2026_secure
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=1440
+    volumes:
+      - ./backend/skillpath.db:/app/backend/skillpath.db
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: skillpath_frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
